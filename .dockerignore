@@ -1,0 +1,8 @@
+.env
+.env.*
+!.env.example
+.git/
+.github/
+*.log
+__pycache__/
+*.pyc

@@ -1,0 +1,69 @@
+name: CI - Build Docker Images
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Configurar Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Crear .env desde secrets (CI)
+        run: |
+          cat > .env <<EOF
+POSTGRES_DB=${{ secrets.POSTGRES_DB || 'proyecto_db' }}
+POSTGRES_USER=${{ secrets.POSTGRES_USER || 'proyecto_user' }}
+POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD || 'ci_password_123' }}
+DB_HOST=db
+DB_PORT=5432
+DB_NAME=${{ secrets.POSTGRES_DB || 'proyecto_db' }}
+DB_USER=${{ secrets.POSTGRES_USER || 'proyecto_user' }}
+DB_PASSWORD=${{ secrets.POSTGRES_PASSWORD || 'ci_password_123' }}
+SECRET_KEY=ci_secret_key_github_actions
+EOF
+
+      - name: Construir imagen app
+        uses: docker/build-push-action@v5
+        with:
+          context: ./app
+          push: false
+          tags: proyecto-app:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Levantar servicios con Docker Compose
+        run: docker compose up -d --wait
+
+      - name: Verificar contenedores activos
+        run: docker compose ps
+
+      - name: Prueba de comunicación (guardar mensaje)
+        run: |
+          sleep 5
+          curl -f -X POST http://localhost:5000/mensajes \
+            -H "Content-Type: application/json" \
+            -d '{"contenido": "Prueba CI - comunicacion entre contenedores"}'
+
+      - name: Prueba de comunicación (leer mensaje)
+        run: |
+          curl -f http://localhost:5000/mensajes
+
+      - name: Health check app
+        run: curl -f http://localhost:5000/health
+
+      - name: Logs en caso de fallo
+        if: failure()
+        run: docker compose logs
+
+      - name: Bajar servicios
+        if: always()
+        run: docker compose down -v

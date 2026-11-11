@@ -1,0 +1,21 @@
+body {
+  background-color: #f8f9fa;
+}
+
+.navbar-brand {
+  font-size: 1.3rem;
+}
+
+.table th {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.card {
+  border-radius: 0.5rem;
+}
+
+footer {
+  border-top: 1px solid #dee2e6;
+}
