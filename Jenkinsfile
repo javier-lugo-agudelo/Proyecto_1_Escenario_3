@@ -61,21 +61,22 @@ pipeline {
                 sh 'docker compose exec -T app python -m pytest tests/ -v --tb=short'
 
                 echo '--- Pruebas de integración: comunicación entre contenedores ---'
+                // Los curls corren DENTRO del contenedor app (misma red Docker)
                 sh '''
                     echo "=== Health check ==="
-                    curl -f http://localhost:5000/health
+                    docker compose exec -T app curl -sf http://localhost:5000/health
 
                     echo "=== POST /mensajes: app escribe en db ==="
-                    curl -f -X POST http://localhost:5000/mensajes \
+                    docker compose exec -T app curl -sf -X POST http://localhost:5000/mensajes \
                         -H "Content-Type: application/json" \
                         -d '{"contenido": "jenkins-integration-test"}'
 
                     echo "=== GET /mensajes: app lee desde db ==="
-                    RESPONSE=$(curl -f http://localhost:5000/mensajes)
+                    RESPONSE=$(docker compose exec -T app curl -sf http://localhost:5000/mensajes)
                     echo "${RESPONSE}"
                     echo "${RESPONSE}" | grep -q "jenkins-integration-test" \
                         && echo "Comunicacion app -> db -> app: OK" \
-                        || (echo "ERROR: no se encontro el mensaje en la respuesta" && exit 1)
+                        || (echo "ERROR: mensaje no encontrado en la respuesta" && exit 1)
                 '''
             }
         }
