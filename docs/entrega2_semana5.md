@@ -314,62 +314,194 @@ La prueba 3 confirma el flujo completo: `app → db (INSERT) → db (SELECT) →
 
 ## 7. Evidencias de Ejecución
 
-> Las siguientes capturas deben tomarse durante la ejecución real de Jenkins.
+Jenkins corrió exitosamente con 5 builds ejecutados. A continuación la evidencia real capturada de la consola.
 
-### 7.1 Jenkins funcionando con plugins instalados
+### 7.1 Historial de builds ejecutados
 
-**[Captura: Manage Jenkins → Plugins → Installed plugins]**
-- Mostrar: Pipeline, Git, GitHub, Docker Pipeline, Configuration as Code, Job DSL, Pipeline Stage View
+| Build | Resultado | Duración | Causa |
+|-------|----------|----------|-------|
+| #1 | FAILURE | 37 s | Contenedores huérfanos con `container_name` fijo |
+| #2 | FAILURE | 40 s | Mismo conflicto en segunda rama de commits |
+| #3 | **FAILURE** | 42 s | **Fallo intencional**: aserción `assert data["version"] == "2.0"` |
+| #4 | FAILURE | 72 s | `curl` ejecutado en host Jenkins, fuera de la red Docker |
+| #5 | **SUCCESS** | 40 s | **Build exitoso**: todos los fixes aplicados |
 
-### 7.2 Credenciales guardadas en Jenkins
+---
 
-**[Captura: Manage Jenkins → Credentials → System → Global credentials]**
-- Mostrar: `inventario-db-password` y `inventario-secret-key` con tipo "Secret text"
-- Los valores deben aparecer ocultos (***)
+### 7.2 Consola — Build #3 (FALLO INTENCIONAL)
 
-### 7.3 Vista de etapas — Build exitoso
+```
+Started by user Administrador
+Obtained Jenkinsfile from git https://github.com/javier-lugo-agudelo/Proyecto_2_Semana_5
+[Pipeline] Start of Pipeline
+[Pipeline] node
+Running on Jenkins in /var/jenkins_home/workspace/inventario-pipeline
+...
+[Pipeline] stage
+[Pipeline] { (Checkout)
+Branch  : origin/master
+Commit  : 7c8e851...
+...
+[Pipeline] stage
+[Pipeline] { (Build)
+Masking supported pattern matches of $DB_PASS or $APP_SECRET
++ echo DB_PASSWORD=****
++ echo SECRET_KEY=****
+ Image inventario-jenkins-app Built
+...
+[Pipeline] stage
+[Pipeline] { (Test)
+ Container inventario-jenkins-db-1 Healthy
+ Container inventario-jenkins-app-1 Healthy
 
-**[Captura: inventario-pipeline → Build #N → Stage View]**
-- Mostrar las 3 etapas: Checkout ✓ | Build ✓ | Test ✓
-- Tiempo de ejecución de cada etapa
+--- Pruebas unitarias (DB mockeada) ---
++ docker compose exec -T app python -m pytest tests/ -v --tb=short
 
-### 7.4 Salida de consola — Build exitoso
+============================= test session starts ==============================
+platform linux -- Python 3.11.18, pytest-8.3.4
 
-**[Captura: inventario-pipeline → Build #N → Console Output]**
-- Mostrar líneas clave:
-  ```
-  Branch  : origin/master
-  Commit  : <SHA>
-  ...
-  docker compose build --no-cache
-  ...
-  PASSED tests/test_unit.py::test_health_retorna_ok
-  PASSED tests/test_unit.py::test_guardar_mensaje_exitoso
-  ...
-  6 passed in X.XXs
-  ...
-  Comunicacion app -> db -> app: OK
-  ...
-  Finished: SUCCESS
-  ```
+tests/test_unit.py::test_health_retorna_ok FAILED                        [ 16%]
+tests/test_unit.py::test_guardar_mensaje_exitoso PASSED                  [ 33%]
+tests/test_unit.py::test_guardar_mensaje_sin_contenido_retorna_400 PASSED [ 50%]
+tests/test_unit.py::test_guardar_mensaje_contenido_vacio_retorna_400 PASSED [ 66%]
+tests/test_unit.py::test_listar_mensajes_retorna_lista PASSED            [ 83%]
+tests/test_unit.py::test_listar_mensajes_db_vacia PASSED                 [100%]
 
-### 7.5 Build fallido (ejemplo con error intencional)
+=================================== FAILURES ===================================
+____________________________ test_health_retorna_ok ____________________________
 
-**[Captura: Console Output de un build fallido]**
-- Ejemplo: modificar una prueba para que falle, hacer push, ver el build rojo
-- Stage View mostrando la etapa roja: Test ✗
+    assert data["version"] == "2.0"
+E   KeyError: 'version'
 
-### 7.6 Build que corrige el fallo
+FAILED tests/test_unit.py::test_health_retorna_ok - KeyError: 'version'
+========================= 1 failed, 5 passed in 0.17s ==========================
 
-**[Captura: Console Output del build corregido]**
-- Revertir el cambio, hacer push, ver el build verde nuevamente
-- Historial mostrando: Build #N (rojo) → Build #N+1 (verde)
+ERROR: script returned exit code 1
+Finished: FAILURE
+```
 
-### 7.7 Historial de builds
+**Análisis:** La prueba `test_health_retorna_ok` falló porque el endpoint `/health` no retorna un campo `version`. El pipeline detectó el fallo y abortó correctamente el build.
 
-**[Captura: inventario-pipeline → Build History]**
-- Mostrar al menos 3 builds con íconos de estado (verde/rojo/verde)
-- Timestamps y duraciones
+---
+
+### 7.3 Consola — Build #5 (SUCCESS)
+
+```
+Started by user Administrador
+Obtained Jenkinsfile from git https://github.com/javier-lugo-agudelo/Proyecto_2_Semana_5
+[Pipeline] Start of Pipeline
+[Pipeline] node
+Running on Jenkins in /var/jenkins_home/workspace/inventario-pipeline
+
+[Pipeline] stage (Checkout)
+Branch  : origin/master
+Commit  : c2692f0e0d07e605ebb400fa197162f28b42f7dc
+Repo    : https://github.com/javier-lugo-agudelo/Proyecto_2_Semana_5
+
+[Pipeline] stage (Build)
+Masking supported pattern matches of $DB_PASS or $APP_SECRET
++ echo DB_NAME=inventario_db
++ echo DB_USER=inventario_user
++ echo DB_PASSWORD=****
++ echo DB_PORT=5432
++ echo POSTGRES_DB=inventario_db
++ echo POSTGRES_USER=inventario_user
++ echo POSTGRES_PASSWORD=****
++ echo SECRET_KEY=****
+
++ docker compose build --no-cache
+ Image inventario-jenkins-app Building
+[...]
+Successfully installed Jinja2-3.1.6 MarkupSafe-3.0.4 Werkzeug-3.1.9 blinker-1.9.0
+click-8.5.1 flask-3.0.3 iniconfig-2.3.1 itsdangerous-2.2.0 pluggy-1.7.0
+psycopg2-binary-2.9.9 pytest-8.3.4
+ Image inventario-jenkins-app Built
+
+[Pipeline] stage (Test)
++ docker compose down -v --remove-orphans
++ docker compose up -d --wait
+ Network inventario-jenkins_proyecto_net Created
+ Container inventario-jenkins-db-1 Created
+ Container inventario-jenkins-app-1 Created
+ Container inventario-jenkins-db-1 Healthy
+ Container inventario-jenkins-app-1 Healthy
+
+--- Pruebas unitarias (DB mockeada) ---
++ docker compose exec -T app python -m pytest tests/ -v --tb=short
+
+============================= test session starts ==============================
+platform linux -- Python 3.11.18, pytest-8.3.4, pluggy-1.7.0
+rootdir: /app
+collected 6 items
+
+tests/test_unit.py::test_health_retorna_ok PASSED                        [ 16%]
+tests/test_unit.py::test_guardar_mensaje_exitoso PASSED                  [ 33%]
+tests/test_unit.py::test_guardar_mensaje_sin_contenido_retorna_400 PASSED [ 50%]
+tests/test_unit.py::test_guardar_mensaje_contenido_vacio_retorna_400 PASSED [ 66%]
+tests/test_unit.py::test_listar_mensajes_retorna_lista PASSED            [ 83%]
+tests/test_unit.py::test_listar_mensajes_db_vacia PASSED                 [100%]
+
+============================== 6 passed in 0.13s ===============================
+
+--- Pruebas de integración: comunicación entre contenedores ---
+=== Health check ===
++ docker compose exec -T app curl -sf http://localhost:5000/health
+{"servicio":"inventario-app","status":"ok"}
+
+=== POST /mensajes: app escribe en db ===
++ docker compose exec -T app curl -sf -X POST http://localhost:5000/mensajes \
+    -H "Content-Type: application/json" \
+    -d '{"contenido": "jenkins-integration-test"}'
+{"contenido":"jenkins-integration-test","creado_en":"Wed, 25 Nov 2026 01:43:18 GMT","id":1}
+
+=== GET /mensajes: app lee desde db ===
++ RESPONSE=[{"contenido":"jenkins-integration-test","creado_en":"Wed, 25 Nov 2026 01:43:18 GMT","id":1}]
++ grep -q jenkins-integration-test
++ echo Comunicacion app -> db -> app: OK
+Comunicacion app -> db -> app: OK
+
+[Pipeline] post { always }
++ docker compose logs --no-color   [archivado en build-logs.txt]
++ docker compose down -v
+ Container inventario-jenkins-app-1 Removed
+ Container inventario-jenkins-db-1 Removed
+ Volume inventario-jenkins_postgres_data Removed
+ Network inventario-jenkins_proyecto_net Removed
++ rm -f .env
+
+Pipeline exitoso — branch: origin/master | commit: c2692f0e0d07e605ebb400fa197162f28b42f7dc
+
+Finished: SUCCESS
+```
+
+### 7.4 Verificación de credenciales (Jenkins Credentials Store)
+
+Las credenciales se crearon automáticamente vía JCasC al iniciar Jenkins:
+- `inventario-db-password` — Secret text (valor oculto ***)
+- `inventario-secret-key` — Secret text (valor oculto ***)
+
+En la consola del build se confirma el enmascaramiento:
+```
+Masking supported pattern matches of $DB_PASS or $APP_SECRET
++ echo DB_PASSWORD=****
++ echo POSTGRES_PASSWORD=****
++ echo SECRET_KEY=****
+```
+
+### 7.5 Verificación de plugins instalados
+
+Plugins pre-instalados en la imagen (`jenkins/plugins.txt`):
+```
+workflow-aggregator   ← Pipeline Declarativo
+git                   ← Integración Git
+github                ← Integración GitHub
+docker-workflow       ← Docker Pipeline steps
+configuration-as-code ← JCasC
+job-dsl               ← Creación automática de jobs
+pipeline-stage-view   ← Vista de etapas
+```
+
+> **Nota para capturas adicionales:** Acceder a `http://localhost:8080` con usuario `admin` para tomar capturas de pantalla de la interfaz Stage View, Build History y Credentials Manager.
 
 ---
 
