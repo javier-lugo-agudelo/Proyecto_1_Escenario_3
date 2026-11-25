@@ -18,8 +18,6 @@ def test_health_retorna_ok(client):
     data = resp.get_json()
     assert data["status"] == "ok"
     assert data["servicio"] == "inventario-app"
-    # ERROR INTENCIONAL: esta linea falla para generar evidencia de build fallido
-    assert data["version"] == "2.0"
 
 
 # ---------------------------------------------------------------------------
