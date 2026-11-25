@@ -52,6 +52,8 @@ pipeline {
 
         stage('Test') {
             steps {
+                // Limpiar entorno previo antes de levantar servicios
+                sh 'docker compose down -v --remove-orphans || true'
                 // Levantar ambos contenedores y esperar healthchecks
                 sh 'docker compose up -d --wait'
 
