@@ -1,5 +1,6 @@
 # Secretos - NUNCA subir al repositorio
 .env
+jenkins/.env
 
 # Python
 __pycache__/

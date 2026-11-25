@@ -1,0 +1,74 @@
+jenkins:
+  systemMessage: "Sistema de Inventarios — Pipeline CI/CD con Jenkins"
+  numExecutors: 2
+  mode: NORMAL
+
+  # Realm de seguridad: usuarios locales, sin registro público
+  securityRealm:
+    local:
+      allowsSignup: false
+      users:
+        - id: "admin"
+          name: "Administrador"
+          password: "${JENKINS_ADMIN_PASSWORD}"
+
+  # Solo los usuarios autenticados pueden operar Jenkins
+  authorizationStrategy:
+    loggedInUsersCanDoAnything:
+      allowAnonymousRead: false
+
+# Deshabilitar seguridad de scripts Job DSL para que casc.yaml
+# pueda crear el pipeline job automáticamente al iniciar
+security:
+  globalJobDslSecurityConfiguration:
+    useScriptSecurity: false
+
+# Credenciales almacenadas en Jenkins Credentials Store.
+# Los valores reales se inyectan desde variables de entorno
+# (jenkins/.env) — NUNCA escritos en texto plano aquí.
+credentials:
+  system:
+    domainCredentials:
+      - credentials:
+          - string:
+              scope: GLOBAL
+              id: "inventario-db-password"
+              secret: "${JENKINS_DB_PASSWORD}"
+              description: "Contrasena PostgreSQL — Sistema de Inventarios"
+          - string:
+              scope: GLOBAL
+              id: "inventario-secret-key"
+              secret: "${JENKINS_SECRET_KEY}"
+              description: "Secret Key Flask — Sistema de Inventarios"
+
+unclassified:
+  location:
+    url: "http://localhost:8080/"
+    adminAddress: ""
+
+# Crear el pipeline job automáticamente al primer arranque de Jenkins
+jobs:
+  - script: >
+      pipelineJob('inventario-pipeline') {
+        description('Pipeline CI/CD — Sistema de Inventarios (Flask + PostgreSQL)')
+        keepDependencies(false)
+        definition {
+          cpsScm {
+            lightweight(true)
+            scm {
+              git {
+                remote {
+                  url('${GITHUB_REPO_URL}')
+                }
+                branch('*/master')
+                extensions {}
+              }
+            }
+            scriptPath('Jenkinsfile')
+          }
+        }
+        triggers {
+          scm('H/5 * * * *')
+        }
+        disabled(false)
+      }

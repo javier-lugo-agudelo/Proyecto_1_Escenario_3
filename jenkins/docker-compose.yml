@@ -1,0 +1,38 @@
+services:
+  jenkins:
+    build: .
+    container_name: jenkins_server
+    restart: unless-stopped
+    # Puerto 8080: interfaz web Jenkins
+    # Puerto 50000: agentes JNLP (escalabilidad futura)
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    volumes:
+      # Persistencia de jobs, configuración, historial de builds
+      - jenkins_home:/var/jenkins_home
+      # Acceso al Docker daemon del host (Docker-out-of-Docker)
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Configuración-como-código (JCasC) montada en lectura
+      - ./casc.yaml:/var/jenkins_home/casc_configs/jenkins.yaml:ro
+    environment:
+      CASC_JENKINS_CONFIG: /var/jenkins_home/casc_configs
+      JENKINS_ADMIN_PASSWORD: ${JENKINS_ADMIN_PASSWORD}
+      JENKINS_DB_PASSWORD: ${JENKINS_DB_PASSWORD}
+      JENKINS_SECRET_KEY: ${JENKINS_SECRET_KEY}
+      GITHUB_REPO_URL: ${GITHUB_REPO_URL}
+    # Leer variables de entorno desde jenkins/.env
+    env_file:
+      - .env
+    # Ejecutar como root para tener acceso al socket Docker del host
+    user: root
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/login"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+volumes:
+  jenkins_home:
+    driver: local
