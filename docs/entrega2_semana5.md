@@ -1,7 +1,7 @@
 # Entrega 2 — Semana 5: Integración Continua con Jenkins
 ## Sistema de Inventarios — Proyecto 1 Escenario 3
 
-**Repositorio:** https://github.com/javier-lugo-agudelo/Proyecto_1_Escenario_3  
+**Repositorio:** https://github.com/javier-lugo-agudelo/Proyecto_2_Semana_5  
 **Integrantes:** Javier Lugo Agudelo  
 **Fecha de entrega:** 24 de noviembre de 2026
 
@@ -222,7 +222,7 @@ triggers {
 Formato cron: `H/5 * * * *` — el `H` distribuye la carga entre jobs para evitar picos simultáneos.
 
 **Cómo funciona:**
-1. Jenkins consulta `https://github.com/javier-lugo-agudelo/Proyecto_1_Escenario_3` cada 5 minutos
+1. Jenkins consulta `https://github.com/javier-lugo-agudelo/Proyecto_2_Semana_5` cada 5 minutos
 2. Si detecta nuevos commits desde la última revisión, lanza un nuevo build
 3. No se requiere configuración adicional en GitHub (no necesita acceso inbound al servidor)
 
